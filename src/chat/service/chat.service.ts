@@ -78,7 +78,6 @@ export class ChatService {
   async handlePing( client: Socket, server: Server) {
  const user = client.data.user;
   if (!user) return;
-console.log(`🔗 Ping received from user: ${user.id}`);
      const redisKey = `user:${user.id}`;
   const data = await this.redisService.get(redisKey);
   if (data) {
