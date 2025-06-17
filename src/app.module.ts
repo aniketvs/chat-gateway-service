@@ -4,9 +4,12 @@ import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { KafkaAdminService } from './kafka/kafka-admin.service';
 import { KafkaInitService } from './kafka/kafka-init.service';
-
+import { RedisModule } from './redis/redis.module';
+import { ConfigModule } from '@nestjs/config';
 @Module({
-  imports: [ConnectionModule,AuthModule,ChatModule],
+  imports: [  ConfigModule.forRoot({
+      isGlobal: true,
+    }),ConnectionModule,AuthModule,ChatModule,RedisModule],
   controllers: [],
   providers: [KafkaInitService,KafkaAdminService],
   exports: [KafkaInitService],
