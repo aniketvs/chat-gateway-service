@@ -45,4 +45,17 @@ export class ChatGateway {
     }
 
   }
+
+  @SubscribeMessage('ping')
+  handlePing(
+    @ConnectedSocket() client:Socket
+  ){
+    try{
+this.chatService.handlePing(client, this.server);
+    }
+    catch (error) {
+      console.error('❌ Error in handlePing:', error);
+      throw new WsException('Failed to handle ping');
+    }
+  }
 }

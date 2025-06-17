@@ -37,6 +37,7 @@ export class ConnectionGateway implements OnGatewayConnection, OnGatewayDisconne
             existingData.status = 'online';
             existingData.roomIds=[roomId];
             existingData.instanceId= process.env.INSTANCE_ID || 'default',
+            existingData.lastPing= new Date().toISOString(),
             await this.redisService.set(redisKey, existingData, 60 * 5); // reset TTL
         } else {
             const redisValue = {
@@ -44,6 +45,7 @@ export class ConnectionGateway implements OnGatewayConnection, OnGatewayDisconne
                 socketIds: [client.id],
                 roomIds: [roomId],
                 instanceId: process.env.INSTANCE_ID || 'default',
+                lastPing: new Date().toISOString(),
             };
             await this.redisService.set(redisKey, redisValue, 60 * 5);
         }
@@ -71,8 +73,10 @@ export class ConnectionGateway implements OnGatewayConnection, OnGatewayDisconne
                 await this.redisService.set(redisKey, {
                     ...data,
                     socketIds: newSocketList,
+                    lastPing: new Date().toISOString(),
+                }, 60 * 5); 
 
-                });
+               
             }
         }
 
