@@ -4,7 +4,7 @@ import { Server, Socket } from 'socket.io';
 import { WsException } from "@nestjs/websockets";
 import { TypingDto } from "../dto/typing.dto";
 import { ProducerService } from "src/kafka/producer.service";
-import { RedisService } from "src/redis/redis.service";
+import { RedisService } from "src/redis/services/redis.service";
 
 @Injectable()
 export class ChatService {

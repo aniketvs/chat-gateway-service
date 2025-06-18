@@ -6,10 +6,11 @@ import { KafkaAdminService } from './kafka/kafka-admin.service';
 import { KafkaInitService } from './kafka/kafka-init.service';
 import { RedisModule } from './redis/redis.module';
 import { ConfigModule } from '@nestjs/config';
+import { CallModule } from './call/call.module';
 @Module({
   imports: [  ConfigModule.forRoot({
       isGlobal: true,
-    }),ConnectionModule,AuthModule,ChatModule,RedisModule],
+    }),ConnectionModule,AuthModule,ChatModule,RedisModule,CallModule],
   controllers: [],
   providers: [KafkaInitService,KafkaAdminService],
   exports: [KafkaInitService],
