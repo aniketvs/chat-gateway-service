@@ -6,45 +6,43 @@ import { RedisService } from 'src/redis/services/redis.service';
 
 @Injectable()
 export class CallEventsSubscriberService implements OnModuleInit {
-      private  server: Server
+  private server: Server
   constructor(
     private readonly redisPubSubService: RedisPubSubService,
     private readonly redisService: RedisService,
-  
-  ) {}
- setServer(server: Server) {
+
+  ) { }
+  setServer(server: Server) {
     this.server = server;
   }
   async onModuleInit() {
     this.redisPubSubService.subscribe('call_events', async (event) => {
-     if(event.event === 'call_request'){
-        const {callerId,calleeId}=event.data;
-        console.log(`📞 Call request received: Caller ID ${callerId}, Callee ID ${calleeId}`);
-        const callerStatus = await this.redisService.get(`user:${callerId}`);
-        const calleeStatus = await this.redisService.get(`user:${calleeId}`);
-        console.log(calleeStatus, callerStatus);
-       if(calleeStatus && calleeStatus.status !== 'online') {
-            console.warn(`⚠️ User ${calleeId} is not online. Cannot ring.`);
-            this.server.to(callerStatus?.roomIds[0]).emit('user_not_online', {
-                message: `User ${calleeId} is not online. Cannot ring.`,
-            });
-            return;
+      if (event.event === 'call_request') {
+        const { caller, callee } = event.data;
+        const myInstanceId = process.env.INSTANCE_ID;
+
+        const isCaller = caller.instanceId === myInstanceId;
+        const isCallee = callee.instanceId === myInstanceId;
+
+        if (!isCaller && !isCallee) return;
+
+        if (caller?.instanceId === myInstanceId) {
+
+          this.server.to(caller.roomIds[0]).emit('call_ringing', {
+            message: `Ringing ${callee.id}`,
+          });
+
         }
 
-        if(callerStatus && callerStatus.status === 'online') {
-            this.server.to(callerStatus?.roomIds[0]).emit('call_ringing',{
-                message: `Ringing ${calleeId}`,
-            });
+        if (callee?.instanceId === myInstanceId && callee.status === 'online') {
+          this.server.to(callee.roomIds[0]).emit('call_incoming', {
+            message: `Incoming call from ${caller.id}`,
+          });
         }
-        
-        if(calleeStatus && calleeStatus.status === 'online') {
-            this.server.to(calleeStatus?.roomIds[0]).emit('call_incoming', {
-                message: `Incoming call from ${callerId}`,
-            });
-        }
-     }
 
-     
+      }
+
+
     });
   }
 }
