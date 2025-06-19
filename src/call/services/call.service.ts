@@ -21,7 +21,7 @@ export class CallService {
             });
             return;
         }
-        if( callerData?.callStatus == 'in_call') {
+        if (callerData?.callStatus == 'in_call') {
             server.to(client.id).emit(CALL_EVENTS.ALREADY_IN_CALL, {
                 message: `User ${fromUser.id} is not in a call.`,
             });
@@ -52,5 +52,36 @@ export class CallService {
             },
         });
 
+    }
+
+    async handleCallEnd(data: any, client: Socket, server: Server) {
+        const fromUser = client.data.user;
+
+        if (!fromUser || !data.toUserId) {
+            server.to(client.id).emit(CALL_EVENTS.INVALID_CALL, {
+                message: 'Invalid call end request.',
+            });
+            return;
+        }
+
+        if (fromUser.id === data.toUserId) {
+            server.to(client.id).emit(CALL_EVENTS.INVALID_CALL, {
+                message: 'You cannot end a call with yourself.',
+            });
+            return;
+        }
+
+        const callerData = await this.redisService.get(`user:${fromUser.id}`);
+        const calleeData = await this.redisService.get(`user:${data.toUserId}`);
+
+        await this.redisPubSubService.publish('call_events', {
+            event: CALL_EVENTS.CALL_END,
+            data: {
+                caller: { id: fromUser.id, ...callerData, socketId: client.id },
+                callee: { id: data.toUserId, ...calleeData },
+            },
+        });
+
+        await this.redisService.del(`call_session:${fromUser.id}_${data.toUserId}`);
     }
 }

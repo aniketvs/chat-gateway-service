@@ -5,6 +5,7 @@ import { RedisPubSubService } from 'src/redis/services/redis-pub-sub.service';
 import { RedisService } from 'src/redis/services/redis.service';
 import { CALL_EVENTS } from '../constant/call-event.constant';
 import { from } from 'rxjs';
+import { CallHelperService } from '../helper/call.helper';
 
 @Injectable()
 export class CallEventsSubscriberService implements OnModuleInit {
@@ -12,6 +13,7 @@ export class CallEventsSubscriberService implements OnModuleInit {
   constructor(
     private readonly redisPubSubService: RedisPubSubService,
     private readonly redisService: RedisService,
+    private readonly callHelperService: CallHelperService
 
   ) { }
   setServer(server: Server) {
@@ -19,14 +21,13 @@ export class CallEventsSubscriberService implements OnModuleInit {
   }
   async onModuleInit() {
     this.redisPubSubService.subscribe('call_events', async (event) => {
+      const { caller, callee } = event.data;
+      const myInstanceId = process.env.INSTANCE_ID;
+      const isCaller = caller?.instanceId === myInstanceId;
+      const isCallee = callee?.instanceId === myInstanceId;
+
+      if (!isCaller && !isCallee) return;
       if (event.event === CALL_EVENTS.REQUEST) {
-        const { caller, callee } = event.data;
-        const myInstanceId = process.env.INSTANCE_ID;
-
-        const isCaller = caller.instanceId === myInstanceId;
-        const isCallee = callee.instanceId === myInstanceId;
-
-        if (!isCaller && !isCallee) return;
 
         if (caller?.instanceId === myInstanceId) {
 
@@ -34,14 +35,10 @@ export class CallEventsSubscriberService implements OnModuleInit {
             message: `Ringing ${callee.id}`,
           });
           const { socketId, id, ...callerData } = caller;
-          await this.redisService.set(`user:${caller.id}`, {
-            ...callerData,
-            callStatus: `${caller.socketId}:in_call`,
-            lastPing: new Date().toISOString(),
-          }, 60 * 5);
+          await this.callHelperService.resetCallStatus(caller.id, callerData, `${caller.socketId}:in_call`);
           await this.redisService.set(
             `call_session:${caller.id}_${callee.id}`,
-            JSON.stringify({ to: callee.id , from: caller.id }),
+            JSON.stringify({ to: callee.id, from: caller.id }),
             15
           );
 
@@ -52,19 +49,34 @@ export class CallEventsSubscriberService implements OnModuleInit {
             message: `Incoming call from ${caller.id}`,
           });
           const { id, ...calleeData } = callee;
-          await this.redisService.set(`user:${callee.id}`, {
-            ...calleeData,
-            callStatus: `${callee.roomIds[0]}:in_call`,
-            lastPing: new Date().toISOString(),
-          }, 60 * 5);
+
+
+          await this.callHelperService.resetCallStatus(callee.id, calleeData, `${callee.roomIds[0]}:in_call`);
         }
 
-
       }
 
-      if(event.event=='call_timeout'){
-        console.log(`Call timeout event received for caller: ${event.data.callerId}, callee: ${event.data.calleeId}`);
+      if (event.event === CALL_EVENTS.CALL_END) {
+        if (isCaller) {
+          this.server.to(caller.socketId).emit(CALL_EVENTS.ENDED, {
+            message: `You ended the call.`,
+          });
+
+          const { socketId, id, ...callerData } = caller;
+          await this.callHelperService.resetCallStatus(caller.id, callerData);
+        }
+
+        if (isCallee) {
+          callee.roomIds.length && this.server.to(callee.roomIds[0]).emit(CALL_EVENTS.ENDED, {
+            message: `Call ended by ${caller.id}`,
+          });
+
+          const { id, ...calleeData } = callee;
+          await this.callHelperService.resetCallStatus(callee.id, calleeData);
+        }
       }
+
+
 
 
     });

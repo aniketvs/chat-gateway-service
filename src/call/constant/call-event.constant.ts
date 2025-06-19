@@ -7,4 +7,10 @@ export const CALL_EVENTS = {
   NOT_ONLINE: 'callee_not_online',
   INVALID_CALL: 'invalid_call',
   ALREADY_IN_CALL: 'caller_already_in_call',
+  CALL_TIMEOUT: 'call_timeout',
+  CALL_END: 'call_end',
+  CALL_ACCEPTED: 'call_accepted',
+  CALL_REJECTED: 'call_rejected',
+  CALL_CANCELLED: 'call_cancelled',
+  CALL_ONGOING: 'call_ongoing',
 };
