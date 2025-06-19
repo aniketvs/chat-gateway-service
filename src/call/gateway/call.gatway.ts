@@ -2,6 +2,7 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSo
 import { Server, Socket } from 'socket.io';
 import { CallService } from "../services/call.service";
 import { CallEventsSubscriberService } from "../services/call-event-subscriber.service";
+import { callTimeoutSubscriberService } from "../services/call-timeout-subscriber.service";
 @WebSocketGateway({ cors: { origin: '*' } })
 export class CallGateway {
     @WebSocketServer()
@@ -9,10 +10,12 @@ export class CallGateway {
 
     constructor(private readonly callService: CallService,
         private readonly callEventsSubscriberService: CallEventsSubscriberService,
+        private readonly callTimeoutSubscriberService: callTimeoutSubscriberService
     ) { }
 afterInit(server: Server) {
     console.log('✅ WebSocket server initialized');
     this.callEventsSubscriberService.setServer(server); // THIS MUST BE CALLED
+    this.callTimeoutSubscriberService.setServer(server);
   }
     @SubscribeMessage('call_request')
     handleCallRequest(

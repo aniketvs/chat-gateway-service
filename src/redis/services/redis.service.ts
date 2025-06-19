@@ -10,6 +10,7 @@ export class RedisService {
         this.client.on('connect', () => this.logger.log('✅ Redis connected'));
         this.client.on('error', err => this.logger.error('❌ Redis error:', err));
     }
+    
     async get(key: string): Promise<string | any | null> {
         const val = await this.client.get(key);
         try {
