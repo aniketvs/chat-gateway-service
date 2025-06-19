@@ -1,10 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-
 import { Server } from 'socket.io';
 import { RedisPubSubService } from 'src/redis/services/redis-pub-sub.service';
 import { RedisService } from 'src/redis/services/redis.service';
 import { CALL_EVENTS } from '../constant/call-event.constant';
-import { from } from 'rxjs';
 import { CallHelperService } from '../helper/call.helper';
 
 @Injectable()
