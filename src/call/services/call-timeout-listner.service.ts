@@ -5,24 +5,28 @@ import { RedisService } from "src/redis/services/redis.service";
 import { CALL_EVENTS } from "../constant/call-event.constant";
 
 @Injectable()
-export class CallTimeoutListenerService implements OnModuleInit{
-     private readonly subscriber = new Redis(process.env.REDIS_URL);
-    constructor(
-        private readonly redisPubSubService: RedisPubSubService,
-        private readonly redisService: RedisService,
-    ) {}
-   async onModuleInit() {
+export class CallTimeoutListenerService implements OnModuleInit {
+  private readonly subscriber = new Redis(process.env.REDIS_URL);
+  constructor(
+    private readonly redisPubSubService: RedisPubSubService,
+    private readonly redisService: RedisService,
+  ) { }
+  async onModuleInit() {
     await this.subscriber.psubscribe('__keyevent@0__:expired');
 
     this.subscriber.on('pmessage', async (pattern, channel, expiredKey) => {
       if (expiredKey.startsWith('call_session:')) {
         const users = expiredKey.split(':')[1];
         const [callerId, calleeId] = users.split('_');
+        const lockKey = `lock:call_timeout:${expiredKey}`;
+        const redisClient = this.redisService['client'];
+        const lock = await redisClient.call('SET', lockKey, '1', 'NX', 'PX', 5000);
+        if (!lock) return;
         this.redisPubSubService.publish('call_timeout_event', {
           event: CALL_EVENTS.CALL_TIMEOUT,
-          data: { callerId ,calleeId},
+          data: { callerId, calleeId },
         });
       }
     });
-    }
+  }
 }
