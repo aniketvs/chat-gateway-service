@@ -7,14 +7,16 @@ export class AuthService {
   async validateUser(token: string): Promise<any> {
     if (!token) return null;
     try {
+        console.log("respinse");
       const response = await axios.get(
-        'http://localhost:5005/api/auth/verify-token',
+        'http://auth-service:5005/api/auth/verify-token',
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
+      console.log("respinse",response.data);
       if (response.data.status == 'failed') {
         console.error('Token verification failed:', response.data.message);
         return null;
