@@ -5,6 +5,7 @@ import { CallEventsSubscriberService } from "../services/call-event-subscriber.s
 import { callTimeoutSubscriberService } from "../services/call-timeout-subscriber.service";
 import { subscribe } from "diagnostics_channel";
 import { CALL_EVENTS } from "../constant/call-event.constant";
+import { UserCallDto } from "../dto/user-call.dto";
 @WebSocketGateway({ cors: { origin: '*' } })
 export class CallGateway {
     @WebSocketServer()
@@ -21,7 +22,7 @@ export class CallGateway {
     }
     @SubscribeMessage(CALL_EVENTS.REQUEST)
     handleCallRequest(
-        @MessageBody() data: any,
+        @MessageBody() data: UserCallDto,
         @ConnectedSocket() client: Socket) {
         try {
             this.callService.handleCallRequest(data, client, this.server);
@@ -34,7 +35,7 @@ export class CallGateway {
 
     @SubscribeMessage(CALL_EVENTS.CALL_END)
     handleCallEnd(
-        @MessageBody() data: any,
+        @MessageBody() data: UserCallDto,
         @ConnectedSocket() client: Socket) {
         try {
             this.callService.handleCallEnd(data, client, this.server);
@@ -46,9 +47,8 @@ export class CallGateway {
 
     @SubscribeMessage(CALL_EVENTS.ACCEPT_CALL)
     handleCallAccepted(
-        @MessageBody() data: any,
+        @MessageBody() data: UserCallDto,
         @ConnectedSocket() client: Socket) {
-console.log("call accept");
         try {
             this.callService.handleCallAccept(data, client, this.server);
         } catch (error) {
@@ -57,5 +57,16 @@ console.log("call accept");
         }
     }
 
-
+  @SubscribeMessage(CALL_EVENTS.REJECT_CALL)
+  handleRejectCall(
+    @MessageBody() data:UserCallDto,
+    @ConnectedSocket() client:Socket
+  ){
+ try {
+            this.callService.handleRejectCall(data, client, this.server);
+        } catch (error) {
+            console.error('❌ Error in handleRejectCall:', error);
+            throw new WsException('Failed to Reject call');
+        }
+  }
 }

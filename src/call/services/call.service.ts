@@ -1,17 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { RedisPubSubService } from "src/redis/services/redis-pub-sub.service";
 import { RedisService } from "src/redis/services/redis.service";
 import { CALL_EVENTS } from "../constant/call-event.constant";
+import { UserCallDto } from "../dto/user-call.dto";
 
 @Injectable()
 export class CallService {
-
+ private readonly logger = new Logger(CallService.name);
     constructor(
         private readonly redisPubSubService: RedisPubSubService,
         private readonly redisService: RedisService,
     ) { }
-    async handleCallRequest(data: any, client: Socket, server: Server) {
+    async handleCallRequest(data: UserCallDto, client: Socket, server: Server) {
         const fromUser = client.data.user;
         const callerData = await this.redisService.get(`user:${fromUser.id}`);
         const calleeData = await this.redisService.get(`user:${data.toUserId}`);
@@ -54,7 +55,7 @@ export class CallService {
 
     }
 
-    async handleCallEnd(data: any, client: Socket, server: Server) {
+    async handleCallEnd(data: UserCallDto, client: Socket, server: Server) {
         const fromUser = client.data.user;
 
         if (!fromUser || !data.toUserId) {
@@ -87,7 +88,7 @@ export class CallService {
 
     }
 
-    async handleCallAccept(data: any, client: Socket, server: Server) {
+    async handleCallAccept(data: UserCallDto, client: Socket, server: Server) {
         const calleeId = client?.data?.user?.id;
         const callerId = data?.toUserId;
 
@@ -100,14 +101,14 @@ export class CallService {
         const redisClient = this.redisService['client'];
         const lockKey = `lock:accept_call:${callerId}_${calleeId}`;
         const lock = await redisClient.call('SET', lockKey, '1', 'NX', 'PX', 3000);
-      
 
-    if (!lock) {
-        server.to(client.id).emit(CALL_EVENTS.ALREADY_ACCEPTED, {
-            message: 'Call already accepted or in progress.',
-        });
-        return;
-    }
+
+        if (!lock) {
+            server.to(client.id).emit(CALL_EVENTS.ALREADY_ACCEPTED, {
+                message: 'Call already accepted or in progress.',
+            });
+            return;
+        }
 
         const callerData = await this.redisService.get(`user:${callerId}`);
         const calleeData = await this.redisService.get(`user:${calleeId}`);
@@ -126,7 +127,7 @@ export class CallService {
             return;
         }
 
-        console.log(`call accepted message pushed to pub sub by ${callerId} ${calleeId}`);
+       this.logger.log(`call accepted message pushed to pub sub by ${callerId} ${calleeId}`);
         await this.redisPubSubService.publish('call_events', {
             event: CALL_EVENTS.CALL_ACCEPTED,
             data: {
@@ -135,6 +136,55 @@ export class CallService {
             },
         });
         await this.redisService.del(`call_session:${callerId}_${calleeId}`);
+
+    }
+
+    async handleRejectCall(data: UserCallDto, client: Socket, server: Server) {
+        const calleeId: number = client?.data?.user?.id;
+        const callerId: number = data?.toUserId;
+
+        if (!calleeId || !callerId) {
+            server.to(client.id).emit(CALL_EVENTS.INVALID_CALL, {
+                message: 'Invalid call reject request.',
+            });
+            return;
+        }
+
+        const redisClient = this.redisService['client'];
+        const lockKey = `lock:reject_call:${callerId}_${calleeId}`;
+        const lock = await redisClient.call('SET', lockKey, '1', 'NX', 'PX', 3000);
+
+
+        if (!lock) {
+            server.to(client.id).emit(CALL_EVENTS.ALREADY_ACCEPTED, {
+                message: 'Call already rejected',
+            });
+            return;
+        }
+        const [callerData, calleeData, callSessionExists] = await Promise.all([this.redisService.get(`user:${callerId}`), this.redisService.get(`user:${calleeId}`), this.redisService.get(`call_session:${callerId}_${calleeId}`)]);
+        if (!callSessionExists) {
+            server.to(client.id).emit(CALL_EVENTS.CALL_TIMEOUT, {
+                message: 'Call timed out.',
+            });
+            return;
+        }
+
+         if (callerData?.callStatus?.includes('in_call') === false) {
+            server.to(client.id).emit(CALL_EVENTS.CALL_CANCELLED, {
+                message: 'Caller is no longer waiting.',
+            });
+            return;
+        }
+         this.logger.log(`call Rejected message pushed to pub sub by ${callerId} ${calleeId}`);
+        await this.redisPubSubService.publish('call_events', {
+            event: CALL_EVENTS.CALL_REJECTED,
+            data: {
+                caller: { id: callerId, ...callerData, },
+                callee: { id: calleeId, ...calleeData, socketId: client.id },
+            },
+        });
+        await this.redisService.del(`call_session:${callerId}_${calleeId}`);
+
 
     }
 }

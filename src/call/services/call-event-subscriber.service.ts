@@ -77,7 +77,6 @@ export class CallEventsSubscriberService implements OnModuleInit {
       if (event.event == CALL_EVENTS.CALL_ACCEPTED) {
         if (isCaller) {
           const socketId = caller.callStatus.split(':')[0];
-          console.log(socketId);
           this.server.to(socketId).emit(CALL_EVENTS.CALL_ACCEPTED, {
             message: `Your call accepted.`,
           });
@@ -91,12 +90,47 @@ export class CallEventsSubscriberService implements OnModuleInit {
           this.server.to(socketId).emit(CALL_EVENTS.CALL_ACCEPTED, {
             message: `Call accepted by ${callee.id}`,
           });
+          calleeData?.socketIds.forEach(element => {
+            if (element != socketId) {
+              this.server.to(element).emit(CALL_EVENTS.CALL_CANCELLED, {
+                message: `Call already accepted by ${socketId}`,
+              });
+            }
+          });
           await this.callHelperService.resetCallStatus(callee.id, calleeData, `${socketId}:on_call`);
         }
 
 
       }
 
+      if (event.event == CALL_EVENTS.CALL_REJECTED) {
+        if (isCaller) {
+          const socketId = caller.callStatus.split(':')[0];
+          this.server.to(socketId).emit(CALL_EVENTS.CALL_REJECTED, {
+            message: `Your call Rejected.`,
+          });
+
+          const { id, ...callerData } = caller;
+          await this.callHelperService.resetCallStatus(caller.id, callerData);
+        }
+
+        if (isCallee) {
+          const { socketId, id, ...calleeData } = callee;
+          this.server.to(socketId).emit(CALL_EVENTS.CALL_REJECTED, {
+            message: `Call Rejected by ${callee.id}`,
+          });
+           calleeData?.socketIds.forEach(element => {
+            if (element != socketId) {
+              this.server.to(element).emit(CALL_EVENTS.CALL_CANCELLED, {
+                message: `Call cancelled by ${socketId}`,
+              });
+            }
+          });
+          await this.callHelperService.resetCallStatus(callee.id, calleeData);
+        }
+
+
+      }
 
 
 

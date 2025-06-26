@@ -12,6 +12,7 @@ export const CALL_EVENTS = {
   ACCEPT_CALL:"accept_call",
   CALL_ACCEPTED: 'call_accepted',
   ALREADY_ACCEPTED:"already_accepted",
+  REJECT_CALL:'reject_call',
   CALL_REJECTED: 'call_rejected',
   CALL_CANCELLED: 'call_cancelled',
   CALL_ONGOING: 'call_ongoing',
