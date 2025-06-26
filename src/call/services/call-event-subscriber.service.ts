@@ -74,6 +74,29 @@ export class CallEventsSubscriberService implements OnModuleInit {
         }
       }
 
+      if (event.event == CALL_EVENTS.CALL_ACCEPTED) {
+        if (isCaller) {
+          const socketId = caller.callStatus.split(':')[0];
+          console.log(socketId);
+          this.server.to(socketId).emit(CALL_EVENTS.CALL_ACCEPTED, {
+            message: `Your call accepted.`,
+          });
+
+          const { id, ...callerData } = caller;
+          await this.callHelperService.resetCallStatus(caller.id, callerData, `${socketId}:on_call`);
+        }
+
+        if (isCallee) {
+          const { socketId, id, ...calleeData } = callee;
+          this.server.to(socketId).emit(CALL_EVENTS.CALL_ACCEPTED, {
+            message: `Call accepted by ${callee.id}`,
+          });
+          await this.callHelperService.resetCallStatus(callee.id, calleeData, `${socketId}:on_call`);
+        }
+
+
+      }
+
 
 
 
