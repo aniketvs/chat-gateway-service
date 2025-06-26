@@ -20,20 +20,31 @@ export class callTimeoutSubscriberService implements OnModuleInit {
         await this.redisPubSubService.subscribe('call_timeout_event', async (event) => {
             if (event.event !== CALL_EVENTS.CALL_TIMEOUT) return;
             const { callerId, calleeId } = event.data;
-            const callerData = await this.redisService.get(`user:${callerId}`);
-            const calleeData = await this.redisService.get(`user:${calleeId}`);
+            const myInstanceId = process.env.INSTANCE_ID;
 
-            if (callerData && calleeData) {
+            const [callerData, calleeData] = await Promise.all([
+                this.redisService.get(`user:${callerId}`),
+                this.redisService.get(`user:${calleeId}`)
+            ]);
+            
+            const isCallerInstance = callerData?.instanceId === myInstanceId;
+            const isCalleeInstance = calleeData?.instanceId === myInstanceId;
+
+            if (isCallerInstance && callerData) {
                 const callerSocketId = callerData?.callStatus?.split(':')[0] || callerData?.roomIds[0];
-                const calleeSocketId = calleeData?.roomIds[0];
                 this.server.to(callerSocketId).emit(CALL_EVENTS.CALL_TIMEOUT, {
                     message: `Call with ${calleeId} has timed out.`,
                 });
+
+                await this.callHelperService.resetCallStatus(callerId, callerData);
+            }
+
+            if (isCalleeInstance && calleeData) {
+                const calleeSocketId = calleeData?.roomIds[0];
                 this.server.to(calleeSocketId).emit(CALL_EVENTS.CALL_TIMEOUT, {
                     message: `Call with ${callerId} has timed out.`,
                 });
 
-                await this.callHelperService.resetCallStatus(callerId, callerData);
                 await this.callHelperService.resetCallStatus(calleeId, calleeData);
             }
         });
