@@ -69,4 +69,40 @@ export class CallGateway {
             throw new WsException('Failed to Reject call');
         }
   }
+    @SubscribeMessage(CALL_EVENTS.WEBRTC_OFFER)
+  handleWebRTCOffer(
+    @MessageBody() data:UserCallDto,
+    @ConnectedSocket() client:Socket
+  ){
+ try {
+           
+        } catch (error) {
+            console.error('❌ Error in handleWebRTCOffer:', error);
+            throw new WsException('Failed to webrtc offer');
+        }
+  }
+   @SubscribeMessage(CALL_EVENTS.WEBRTC_ANSWER)
+  handleWebRTCAnswer(
+    @MessageBody() data:UserCallDto,
+    @ConnectedSocket() client:Socket
+  ){
+ try {
+           
+        } catch (error) {
+            console.error('❌ Error in handleWebRTCAnswer:', error);
+            throw new WsException('Failed to webrtc Answer');
+        }
+  }
+     @SubscribeMessage(CALL_EVENTS.WEBRTC_CONNECTED)
+  handleWebRTCConnected(
+    @MessageBody() data:UserCallDto,
+    @ConnectedSocket() client:Socket
+  ){
+ try {
+           
+        } catch (error) {
+            console.error('❌ Error in handleWebRTCConnected:', error);
+            throw new WsException('Failed to webrtc Connected');
+        }
+  }
 }

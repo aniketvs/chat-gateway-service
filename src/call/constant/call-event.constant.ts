@@ -16,4 +16,7 @@ export const CALL_EVENTS = {
   CALL_REJECTED: 'call_rejected',
   CALL_CANCELLED: 'call_cancelled',
   CALL_ONGOING: 'call_ongoing',
+  WEBRTC_OFFER:'webrtc_offer',
+  WEBRTC_ANSWER:'webrtc_answer',
+  WEBRTC_CONNECTED:'webrtc_connected'
 };
