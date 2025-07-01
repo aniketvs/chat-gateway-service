@@ -18,5 +18,6 @@ export const CALL_EVENTS = {
   CALL_ONGOING: 'call_ongoing',
   WEBRTC_OFFER:'webrtc_offer',
   WEBRTC_ANSWER:'webrtc_answer',
-  WEBRTC_CONNECTED:'webrtc_connected'
+  WEBRTC_CONNECTED:'webrtc_connected',
+  ICE_CANDIDATE:"ice_candidate"
 };

@@ -5,9 +5,12 @@ import { CallEventsSubscriberService } from "./services/call-event-subscriber.se
 import { CallTimeoutListenerService } from "./services/call-timeout-listner.service";
 import { callTimeoutSubscriberService } from "./services/call-timeout-subscriber.service";
 import { CallHelperService } from "./helper/call.helper";
+import { WebRTCService } from "./services/webrtc.service";
 
 @Module({
-    providers: [CallGateway,CallService,CallEventsSubscriberService,CallTimeoutListenerService,callTimeoutSubscriberService,CallHelperService],
+    providers: [CallGateway,CallService,CallEventsSubscriberService,CallTimeoutListenerService,callTimeoutSubscriberService,CallHelperService
+        ,WebRTCService
+    ],
     exports: [],
     imports: [],
     controllers: [],
